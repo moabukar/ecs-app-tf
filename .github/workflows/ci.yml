@@ -1,0 +1,175 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - production
+  pull_request:
+    branches:
+      - main
+      - production
+
+jobs:
+  test_and_lint:
+    name: Test and Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker
+        uses: docker/setup-docker@v1
+
+      - name: Build and Push
+        run: |
+          apk add --update docker-compose
+          docker-compose run --rm app sh -c "python manage.py wait_for_db && python manage.py test && flake8"
+
+      - name: Validate Terraform
+        run: |
+          cd deploy/
+          terraform init -backend=false
+          terraform validate
+          terraform fmt -check
+
+  build_and_push:
+    name: Build and Push
+    runs-on: ubuntu-latest
+    env:
+      ECR_REPO: ${{ secrets.ECR_REPO }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker
+        uses: docker/setup-docker@v1
+
+      - name: Install Python
+        run: sudo apt-get update && sudo apt-get install -y python3 python3-pip
+
+      - name: Install AWS CLI
+        run: pip3 install awscli
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build --compress -t $ECR_REPO:${{ github.sha }} .
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REPO
+          docker push $ECR_REPO:${{ github.sha }}
+          docker tag $ECR_REPO:${{ github.sha }} $ECR_REPO:latest
+          docker push $ECR_REPO:latest
+
+  staging_plan:
+    name: Staging Plan
+    runs-on: ubuntu-latest
+    env:
+      ECR_REPO: ${{ secrets.ECR_REPO }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Plan - Staging
+        run: |
+          cd deploy/
+          terraform init
+          terraform workspace select staging || terraform workspace new staging
+          terraform plan
+
+  staging_apply:
+    name: Staging Apply
+    runs-on: ubuntu-latest
+    env:
+      ECR_REPO: ${{ secrets.ECR_REPO }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Apply - Staging
+        run: |
+          cd deploy/
+          terraform init
+          terraform workspace select staging
+          terraform apply -auto-approve
+
+  production_plan:
+    name: Production Plan
+    runs-on: ubuntu-latest
+    env:
+      ECR_REPO: ${{ secrets.ECR_REPO }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Plan - Production
+        run: |
+          cd deploy/
+          terraform init
+          terraform workspace select production || terraform workspace new production
+          terraform plan
+
+  production_apply:
+    name: Production Apply
+    runs-on: ubuntu-latest
+    env:
+      ECR_REPO: ${{ secrets.ECR_REPO }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Apply - Production
+        run: |
+          cd deploy/
+          terraform init
+          terraform workspace select production
+          terraform apply -auto-approve
+
+  staging_destroy:
+    name: Staging Destroy
+    runs-on: ubuntu-latest
+    env:
+      ECR_REPO: ${{ secrets.ECR_REPO }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Destroy - Staging
+        run: |
+          cd deploy/
+          terraform init
+          terraform workspace select staging
+          terraform destroy -auto-approve
+
+  production_destroy:
+    name: Production Destroy
+    runs-on: ubuntu-latest
+    env:
+      ECR_REPO: ${{ secrets.ECR_REPO }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Destroy - Production
+        run: |
+          cd deploy/
+          terraform init
+          terraform workspace select production
+          terraform destroy -auto-approve
+
