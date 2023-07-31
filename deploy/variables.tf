@@ -24,12 +24,12 @@ variable "bastion_key_name" {
 
 variable "ecr_image_api" {
   description = "ECR image for API"
-  default     = "875086615781.dkr.ecr.us-east-1.amazonaws.com/recipe-app-api-devops:latest"
+  default     = "<Account_ID>.dkr.ecr.eu-west-2.amazonaws.com/<ECR_REPO>:latest"
 }
 
 variable "ecr_image_proxy" {
   description = "ECR image for proxy"
-  default     = "875086615781.dkr.ecr.us-east-1.amazonaws.com/recipe-app-api-proxy:latest"
+  default     = "<Account_ID>.dkr.ecr.eu-west-2.amazonaws.com/<ECR_REPO>:latest"
 }
 
 variable "django_secret_key" {
@@ -38,7 +38,7 @@ variable "django_secret_key" {
 
 variable "dns_zone_name" {
   description = "Domain name"
-  default     = "londonappdev.net"
+  # default     = "google.com"
 }
 
 variable "subdomain" {

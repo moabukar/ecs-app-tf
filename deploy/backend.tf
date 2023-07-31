@@ -1,3 +1,8 @@
+provider "aws" {
+  region  = "us-east-1"
+  version = "~> 2.54.0"
+}
+
 terraform {
   backend "s3" {
     bucket         = "c3-recipe-app-api-devops-tfstate"
@@ -6,11 +11,6 @@ terraform {
     encrypt        = true
     dynamodb_table = "recipe-app-api-devops-tf-state-lock"
   }
-}
-
-provider "aws" {
-  region  = "us-east-1"
-  version = "~> 2.54.0"
 }
 
 locals {
