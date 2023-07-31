@@ -3,7 +3,8 @@
  - Python
  - Django / Django-REST-Framework
  - Docker / Docker-Compose
- - Test Driven Development
+ - TDD
+ - AWS (ECS)
 
 
 ## Getting started
