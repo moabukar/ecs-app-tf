@@ -51,3 +51,4 @@ resource "aws_db_instance" "main" {
     map("Name", "${local.prefix}-main")
   )
 }
+
